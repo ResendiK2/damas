@@ -1,3 +1,5 @@
+:- use_module(library(random)).
+
 % Mapa de coordenadas alfanumericas para indices de tabuleiro
 coord_map([
     [a1, (8, 1)], [a2, (7, 1)], [a3, (6, 1)], [a4, (5, 1)], [a5, (4, 1)], [a6, (3, 1)], [a7, (2, 1)], [a8, (1, 1)],
@@ -29,23 +31,93 @@ initial_board([
 
 % Funcao principal que inicia o jogo
 play :- 
-    initial_board(Board), 
-    game_loop(Board, a).  % Jogador A comeca
+    write('Escolha o modo de jogo:'), nl,
+    write('1. Jogar contra o computador'), nl,
+    write('2. Ver dois computadores jogando entre si'), nl,
+    read(Escolha),
+    (Escolha = 1 -> 
+        % Modo Jogador vs Computador
+        inicializar_jogo(jogador, computador)
+    ; Escolha = 2 ->
+        % Modo Computador vs Computador
+        inicializar_jogo(computador, computador)
+    ; 
+        write('Escolha invalida! Tente novamente.'), nl,
+        play
+    ).
+
+% Inicializa o jogo com os tipos de jogadores
+inicializar_jogo(TipoJogadorA, TipoJogadorB) :-
+    initial_board(Board),
+    game_loop(Board, a, TipoJogadorA, TipoJogadorB).  % Jogador A comeca
 
 % Funcao de loop do jogo: alterna entre os jogadores
-game_loop(Board, Player) :-
+game_loop(Board, Player, TipoJogadorA, TipoJogadorB) :-
     print_board(Board),  % Imprime o tabuleiro atual
-    format('Vez do jogador: ~w~n', [Player]),  % Exibe de quem e a vez
-    read(Move),  % Le o movimento
+    format('Vez do jogador: ~w~n', [Player]),  % Exibe de quem é a vez
+    obter_jogada(Player, TipoJogadorA, TipoJogadorB, Move, Board),
     (execute_move(Move, Player, Board, NewBoard) ->  % Tenta executar o movimento
-        next_player(Player, NextPlayer),  % Alterna jogadores
-        game_loop(NewBoard, NextPlayer)   % Continua o jogo
-    ;   write('Movimento invalido! Tente novamente.'), nl,  % Movimento invalido
-        game_loop(Board, Player)).  % Continua com o mesmo jogador
+        next_player(Player, NextPlayer),
+        game_loop(NewBoard, NextPlayer, TipoJogadorA, TipoJogadorB)   % Continua o jogo
+    ;   write('Movimento invalido! Tente novamente.'), nl,  % Movimento inválido
+        game_loop(Board, Player, TipoJogadorA, TipoJogadorB)).  % Continua com o mesmo jogador
 
 % Alterna jogadores
 next_player(a, b).
 next_player(b, a).
+
+% Decide como obter a jogada com base no tipo de jogador
+obter_jogada(a, TipoJogadorA, _, Move, Board) :-
+    (TipoJogadorA = jogador -> 
+        % Jogador humano insere a jogada
+        write('Insira sua jogada (formato: mv(a3, b4)): '),
+        read(Move)
+    ; 
+        % Jogador computador gera a jogada
+        escrever('Computador A está jogando...'),
+        gerar_jogada_computador(a, Board, Move),
+        format('Jogador A jogou: ~w~n', [Move])
+    ).
+
+obter_jogada(b, _, TipoJogadorB, Move, Board) :-
+    (TipoJogadorB = jogador -> 
+        % Jogador humano insere a jogada
+        write('Insira sua jogada (formato: mv(a3, b4)): '),
+        read(Move)
+    ; 
+        % Jogador computador gera a jogada
+        escrever('Computador B está jogando...'),
+        gerar_jogada_computador(b, Board, Move),
+        format('Jogador B jogou: ~w~n', [Move])
+    ).
+
+% Função auxiliar para escrever mensagens sem quebrar a linha
+escrever(Mensagem) :-
+    write(Mensagem), nl.
+
+% Gera uma jogada válida aleatória para o computador
+gerar_jogada_computador(Player, Board, Move) :-
+    encontrar_todas_jogadas_validas(Player, Board, TodasJogadas),
+    length(TodasJogadas, N),
+    N > 0,  % Assegura que há jogadas válidas
+    random_between(1, N, Indice),
+    nth1(Indice, TodasJogadas, Move).
+
+% Encontra todas as jogadas válidas para um jogador
+encontrar_todas_jogadas_validas(Player, Board, TodasJogadas) :-
+    findall(
+        mv(Coord1, Coord2),
+        (
+            coord_map(Map),
+            member([Coord1, (Ci, Lj)], Map),
+            nth1(Ci, Board, Row),
+            nth1(Lj, Row, Piece),
+            (Piece = Player ; Piece = 'A' ; Piece = 'B'),  % Peca do jogador ou dama
+            member([Coord2, (Cf, Lf)], Map),
+            valid_move(Ci, Lj, Cf, Lf, Player, Board)
+        ),
+        TodasJogadas
+    ).
 
 % Executa o movimento: mv(coord1, coord2)
 execute_move(Move, Player, Board, NewBoard) :-
@@ -68,8 +140,8 @@ valid_move(Ci, Lj, Cf, Lf, Player, Board) :-
     (
         (Piece = Player; Piece = 'A'; Piece = 'B'), % Verifica se a peca e do jogador ou uma dama
         (
-            (Piece = Player, valid_move_simple(Ci, Lj, Cf, Lf, Player, Board));  % Movimento de peca simples
-            (Piece = 'A', Player = a, valid_move_dama(Ci, Lj, Cf, Lf, Player, Board));  % Movimento de dama A
+            (Piece = Player, valid_move_simple(Ci, Lj, Cf, Lf, Player, Board)) ;  % Movimento de peca simples
+            (Piece = 'A', Player = a, valid_move_dama(Ci, Lj, Cf, Lf, Player, Board)) ;  % Movimento de dama A
             (Piece = 'B', Player = b, valid_move_dama(Ci, Lj, Cf, Lf, Player, Board))  % Movimento de dama B
         )
     ).
@@ -121,8 +193,8 @@ path_clear_step(Ci, Lj, Cf, Lf, Board, Di, Dj) :-
 
 % Funcao para promover a peca se atingir a linha de promocao
 promote([Cf, Lf], Piece, Board, NewBoard) :-
-    (Piece = a, Cf =:= 1 -> replace_element(Cf, Lf, 'A', Board, NewBoard);  % 'a' vira 'A'
-     Piece = b, Cf =:= 8 -> replace_element(Cf, Lf, 'B', Board, NewBoard);  % 'b' vira 'B'
+    (Piece = a, Cf =:= 1 -> replace_element(Cf, Lf, 'A', Board, NewBoard) ;  % 'a' vira 'A'
+     Piece = b, Cf =:= 8 -> replace_element(Cf, Lf, 'B', Board, NewBoard) ;  % 'b' vira 'B'
      NewBoard = Board).  % Se nao for linha de promocao, mantem o tabuleiro inalterado.
 
 % Movimento de uma peca simples (nao-dama)
@@ -157,15 +229,19 @@ print_board([Row | Rest], N) :-
 
 print_row([]).
 print_row([Cell | Rest]) :- 
-    write(Cell), write(' '), 
+    (Cell = 0 -> write('. ') ; write(Cell), write(' ')), 
     print_row(Rest).
 
-execute_capture(cap(Coord1, [Coord2|Rest]), Player, Board, NewBoard) :-
+execute_capture(cap(Coord1, Captures), Player, Board, NewBoard) :-
     coord_to_index(Coord1, Ci, Lj),  % Converte coordenadas de origem usando o mapa
     coord_to_index(Coord2, Cf, Lf),  % Converte coordenadas da primeira captura
     capture(Player, [Ci, Lj], [Cf, Lf], Board, TempBoard),  % Realiza a primeira captura
-    (Rest = [] -> NewBoard = TempBoard ; execute_capture(cap(Coord2, Rest), Player, TempBoard, NewBoard)).  % Continua capturando ou finaliza.
-
+    (Rest = Captures -> 
+        (Rest = [] -> NewBoard = TempBoard 
+        ; execute_capture(cap(Coord2, Rest), Player, TempBoard, NewBoard))
+    ; 
+        NewBoard = TempBoard).  % Continua capturando ou finaliza.
+    
 % Realiza a captura de uma peca simples ou dama
 capture(Player, [Ci, Lj], [Cf, Lf], Board, NewBoard) :-
     MidRow is (Ci + Cf) // 2,  % Calcula a posicao intermediaria (onde a peca adversaria esta)
@@ -199,6 +275,10 @@ path_clear_capture_step(Ci, Lj, MidRow, MidCol, Board, Di, Dj) :-
 opponent(a, b).
 opponent(b, a).
 
+% Funcao para imprimir as colunas do tabuleiro
+print_board_final :-
+    write('  A B C D E F G H'), nl.
+
 % Tabuleiro de teste com pecas prestes a virar damas
 test_board([
     [0, 0, 0, 0, 0, 0, 0, 0],  % Linha 1
@@ -214,4 +294,9 @@ test_board([
 % Funcao principal para iniciar com o tabuleiro de teste
 play_test :- 
     test_board(Board), 
-    game_loop(Board, a).
+    game_loop(Board, a, a, b).
+
+% Funcao para substituir o elemento no final
+replace_last_element(List, Elem, NewList) :-
+    append(Prefix, [_], List),
+    append(Prefix, [Elem], NewList).
