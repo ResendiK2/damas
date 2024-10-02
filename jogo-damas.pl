@@ -59,7 +59,7 @@ game_loop(Board, Player, TipoJogadorA, TipoJogadorB) :-
     (execute_move(Move, Player, Board, NewBoard) ->  % Tenta executar o movimento
         next_player(Player, NextPlayer),
         game_loop(NewBoard, NextPlayer, TipoJogadorA, TipoJogadorB)   % Continua o jogo
-    ;   write('Movimento invalido! Tente novamente.'), nl,  % Movimento inválido
+    ;   write('Movimento invalido! Tente novamente.'), nl,  % Movimento invalido
         game_loop(Board, Player, TipoJogadorA, TipoJogadorB)).  % Continua com o mesmo jogador
 
 % Alterna jogadores
@@ -70,7 +70,7 @@ next_player(b, a).
 obter_jogada(a, TipoJogadorA, _, Move, Board) :-
     (TipoJogadorA = jogador -> 
         % Jogador humano insere a jogada
-        write('Insira sua jogada (formato: mv(a3, b4)): '),
+        write('Insira sua jogada (formato: mv(a3, b4)) ou cap(a3, [b5, ..., b4]): '),
         read(Move)
     ; 
         % Jogador computador gera a jogada
@@ -91,19 +91,19 @@ obter_jogada(b, _, TipoJogadorB, Move, Board) :-
         format('Jogador B jogou: ~w~n', [Move])
     ).
 
-% Função auxiliar para escrever mensagens sem quebrar a linha
+% Funçao auxiliar para escrever mensagens sem quebrar a linha
 escrever(Mensagem) :-
     write(Mensagem), nl.
 
-% Gera uma jogada válida aleatória para o computador
+% Gera uma jogada valida aleatória para o computador
 gerar_jogada_computador(Player, Board, Move) :-
     encontrar_todas_jogadas_validas(Player, Board, TodasJogadas),
     length(TodasJogadas, N),
-    N > 0,  % Assegura que há jogadas válidas
+    N > 0,  % Assegura que ha jogadas validas
     random_between(1, N, Indice),
     nth1(Indice, TodasJogadas, Move).
 
-% Encontra todas as jogadas válidas para um jogador
+% Encontra todas as jogadas validas para um jogador
 encontrar_todas_jogadas_validas(Player, Board, TodasJogadas) :-
     findall(
         mv(Coord1, Coord2),
@@ -122,22 +122,22 @@ encontrar_todas_jogadas_validas(Player, Board, TodasJogadas) :-
 % Executa o movimento: mv(coord1, coord2)
 execute_move(Move, Player, Board, NewBoard) :-
     (   Move = mv(Coord1, Coord2)  % Verifica se é um movimento normal
-    ->  % Adiciona verificação para impedir mover para a mesma posição
+    ->  % Adiciona verificaçao para impedir mover para a mesma posiçao
         (Coord1 = Coord2 ->
-            write('Movimento inválido! A posição de origem e destino são as mesmas.'), nl, fail
-        ;   % Continua com a execução normal se o movimento for válido
+            write('Movimento invalido! A posiçao de origem e destino sao as mesmas.'), nl, fail
+        ;   % Continua com a execuçao normal se o movimento for valido
             coord_to_index(Coord1, Ci, Lj),  % Converte coordenadas de origem usando o mapa
             coord_to_index(Coord2, Cf, Lf),  % Converte coordenadas de destino usando o mapa
             nth1(Ci, Board, OrigRow), nth1(Lj, OrigRow, Piece),  % Verifica peça na origem
             write('Peça na origem: '), write(Piece), nl,
-            (valid_move(Ci, Lj, Cf, Lf, Player, Board) ->  % Verifica se o movimento é válido
+            (valid_move(Ci, Lj, Cf, Lf, Player, Board) ->  % Verifica se o movimento é valido
                 move(Piece, [Ci, Lj], [Cf, Lf], Board, TempBoard),
                 promote([Cf, Lf], Piece, TempBoard, NewBoard)  % Verifica se deve promover
-            ; write('Movimento inválido! Deve ser na diagonal permitida.'), nl, fail)
+            ; write('Movimento invalido! Deve ser na diagonal permitida.'), nl, fail)
         )
     ;   Move = cap(Coord1, Captures)  % Verifica se é um movimento de captura
     ->  execute_capture(cap(Coord1, Captures), Player, Board, NewBoard)  % Executa a captura
-    ;   write('Movimento inválido! Tente novamente.'), nl, fail).
+    ;   write('Captura invalida! Tente novamente.'), nl, fail).
 
 
 % Verifica se o movimento e valido para pecas normais e damas
@@ -239,12 +239,13 @@ print_row([Cell | Rest]) :-
     print_row(Rest).
 
 execute_capture(cap(Coord1, [Coord2 | Rest]), Player, Board, NewBoard) :-
+    write('Executando captura...'), nl,
     coord_to_index(Coord1, Ci, Lj),  % Converte coordenadas de origem usando o mapa
     coord_to_index(Coord2, Cf, Lf),  % Converte coordenadas da primeira captura
     capture(Player, [Ci, Lj], [Cf, Lf], Board, TempBoard),  % Realiza a primeira captura
     (Rest \= [] ->  % Se houver mais capturas a fazer
         execute_capture(cap(Coord2, Rest), Player, TempBoard, NewBoard)
-    ;   NewBoard = TempBoard).  % Finaliza se não houver mais capturas.
+    ;   NewBoard = TempBoard).  % Finaliza se nao houver mais capturas.
     
 % Realiza a captura de uma peca simples ou dama
 capture(Player, [Ci, Lj], [Cf, Lf], Board, NewBoard) :-
@@ -287,8 +288,8 @@ print_board_final :-
 test_board([
     [0, 0, 0, 0, 0, 0, 0, 0],  % Linha 1
     [0, 0, 0, 0, 0, a, 0, 0],  % Linha 2
-    [0, 0, 0, 0, 0, 0, 0, 0],  % Linha 3
-    [0, 0, 0, 0, 0, 0, 0, 0],  % Linha 4
+    [0, 0, 0, 0, 0, 0, b, 0],  % Linha 3
+    [0, b, 0, 0, 0, 0, 0, 0],  % Linha 4
     [0, 0, 0, 0, 0, 0, 0, 0],  % Linha 5
     [0, 0, 0, 0, 0, 0, 0, 0],  % Linha 6
     [0, 0, 0, 0, b, 0, 0, 0],  % Linha 7: Jogador A prestes a virar dama
@@ -296,7 +297,7 @@ test_board([
 ]).
 
 % Funcao principal para iniciar com o tabuleiro de teste
-play_test :- 
+test :- 
     test_board(Board), 
     game_loop(Board, a, jogador, computador).
 
