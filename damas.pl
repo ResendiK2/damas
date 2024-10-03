@@ -1,3 +1,6 @@
+% Breno Lino Prado - 202265013AC
+%  Gabriel Arantes Resende Pereira - 202065126A
+
 :- use_module(library(random)).
 
 % Mapa de coordenadas alfanumericas para indices de tabuleiro
@@ -87,7 +90,16 @@ next_player(b, a).
 obter_jogada(a, TipoJogadorA, _, Move, Board) :-
     (TipoJogadorA = jogador -> 
         write('Insira sua jogada (formato: mv(a3, b4)) ou cap(a3, [b5, ..., b4]): '),
-        read(Move)
+        read(Move),
+        (
+            Move = mv(Coord1, _) ; Move = cap(Coord1, _)
+        ),
+        (peca_do_jogador(Coord1, a, Board) ->
+            true
+        ;
+            write('Erro: Você deve mover uma peça sua.'), nl,
+            obter_jogada(a, TipoJogadorA, _, Move, Board)
+        )
     ; 
         write('Computador A esta jogando...'), nl,
         gerar_jogada_computador(a, Board, Move),
@@ -96,13 +108,29 @@ obter_jogada(a, TipoJogadorA, _, Move, Board) :-
 
 obter_jogada(b, _, TipoJogadorB, Move, Board) :-
     (TipoJogadorB = jogador -> 
-        write('Insira sua jogada (formato: mv(a3, b4)): '),
-        read(Move)
+        write('Insira sua jogada (formato: mv(a3, b4)) ou cap(a3, [b5, ..., b4]): '),
+        read(Move),
+        (
+            Move = mv(Coord1, _) ; Move = cap(Coord1, _)
+        ),
+        (peca_do_jogador(Coord1, b, Board) ->
+            true
+        ;
+            write('Erro: Você deve mover uma peça sua.'), nl,
+            obter_jogada(b, _, TipoJogadorB, Move, Board)
+        )
     ; 
         write('Computador B esta jogando...'), nl,
         gerar_jogada_computador(b, Board, Move),
         format('Jogador B jogou: ~w~n', [Move])
     ).
+
+% Verifica se a peça na coordenada pertence ao jogador atual
+peca_do_jogador(Coord, Player, Board) :-
+    coord_to_index(Coord, RowIdx, ColIdx),
+    nth1(RowIdx, Board, Row),
+    nth1(ColIdx, Row, Piece),
+    (Piece = Player; (Player = a, Piece = 'A'); (Player = b, Piece = 'B')).
 
 % Gera uma jogada valida aleatoria para o computador
 gerar_jogada_computador(Player, Board, Move) :-
