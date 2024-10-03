@@ -1,4 +1,4 @@
-% Breno Lino Prado - 202265013AC
+%  Breno Lino Prado - 202265013AC
 %  Gabriel Arantes Resende Pereira - 202065126A
 
 :- use_module(library(random)).
