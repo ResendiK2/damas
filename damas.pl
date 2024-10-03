@@ -44,10 +44,25 @@ play :-
         play
     ).
 
-% Inicializa o jogo com os tipos de jogadores
+% Inicializa o jogo com os tipos de jogadores e define quem inicia
 inicializar_jogo(TipoJogadorA, TipoJogadorB) :-
+    write('Escolha quem vai iniciar o jogo:'), nl,
+    write('1. Jogador A (pecas a)'), nl,
+    write('2. Jogador B (pecas b)'), nl,
+    write('3. Escolha aleatoria'), nl,
+    read(Escolha),
+    (Escolha = 1 ->
+        JogadorInicial = a
+    ; Escolha = 2 ->
+        JogadorInicial = b
+    ; Escolha = 3 ->
+        random_member(JogadorInicial, [a, b])
+    ; 
+        write('Escolha inválida! O jogador A iniciará por padrão.'), nl,
+        JogadorInicial = a
+    ),
     initial_board(Board),
-    game_loop(Board, a, TipoJogadorA, TipoJogadorB).
+    game_loop(Board, JogadorInicial, TipoJogadorA, TipoJogadorB).
 
 % Funcao de loop do jogo: alterna entre os jogadores
 game_loop(Board, Player, TipoJogadorA, TipoJogadorB) :-
